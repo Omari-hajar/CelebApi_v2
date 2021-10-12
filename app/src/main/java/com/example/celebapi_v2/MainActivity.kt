@@ -1,0 +1,131 @@
+package com.example.celebapi_v2
+
+import android.content.Intent
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import android.view.SearchEvent
+import android.view.inputmethod.EditorInfo
+import android.widget.ArrayAdapter
+import android.widget.SearchView
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.celebapi_v2.RetrofitInstance.api
+import com.example.celebapi_v2.databinding.ActivityMainBinding
+import retrofit2.HttpException
+import java.io.IOException
+
+class MainActivity : AppCompatActivity() {
+    lateinit var binding: ActivityMainBinding
+    //lateinit var rvMain: RecyclerView
+    lateinit var adapter: RVAdapter
+
+   lateinit var list : ArrayList<Data>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+
+        list = arrayListOf()
+
+        //setRV()
+        adapter = RVAdapter(this, list)
+        binding.rvMain.layoutManager = LinearLayoutManager(this)
+        binding.rvMain.adapter = adapter
+
+
+        binding.btnAdd.setOnClickListener {
+
+            val intent = Intent(this@MainActivity, AddCelebActivity::class.java)
+            startActivity(intent)
+
+        }
+
+        //todo: find a way to do search properly without breaking the RV
+        binding.btndel.setOnClickListener {
+            val userinput = binding.etSearch.text.toString()
+            for (i in list){
+                if (userinput == i.name){
+                    val intent = Intent(this@MainActivity, DelUpActivity::class.java)
+                    intent.putExtra("userinput", userinput.toString())
+                    startActivity(intent)
+
+                }
+            }
+
+
+        }
+
+
+        adapter.notifyDataSetChanged()
+
+        getData()
+
+    }
+
+    private fun getData(){
+        lifecycleScope.launchWhenCreated {
+            val response = try {
+              api.getData()
+            } catch (e: IOException){
+                Log.d("Main-error", e.message.toString())
+                return@launchWhenCreated
+
+            }catch (e: HttpException){
+                Log.d("Main-error", e.message.toString())
+                return@launchWhenCreated
+            }
+
+            if (response.isSuccessful && response.body() !=null){
+               val data = response.body()!!
+
+                adapter.update(data as ArrayList<Data>)
+                for (i in response.body()!!){
+                    list.add(Data(i.pk, i.name, i.taboo1, i.taboo2, i.taboo3))
+                }
+
+            }else{
+                Log.d("Main-Error", "Response was not successful")
+            }
+        }
+    }
+
+
+
+//    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+//        menuInflater.inflate(R.menu.main_menu, menu)
+//
+//        val item = menu?.findItem(R.id.searchView_MenuMain)
+//        val searchView: SearchView = item?.actionView as SearchView
+//
+//        searchView.imeOptions = EditorInfo.IME_ACTION_DONE
+//
+//        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+//            override fun onQueryTextSubmit(query: String?): Boolean {
+//                return false
+//            }
+//
+//            override fun onQueryTextChange(newText: String?): Boolean {
+//                adapter.filter.filter(newText)
+//                return false
+//            }
+//        })
+//
+//        return true
+//    }
+//
+//    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+//
+//        return true
+//    }
+
+
+
+
+}
