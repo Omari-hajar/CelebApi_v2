@@ -1,15 +1,13 @@
 package com.example.celebapi_v2
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
-import android.view.MenuItem
-import android.view.SearchEvent
-import android.view.inputmethod.EditorInfo
-import android.widget.ArrayAdapter
-import android.widget.SearchView
+
+import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -17,6 +15,8 @@ import com.example.celebapi_v2.RetrofitInstance.api
 import com.example.celebapi_v2.databinding.ActivityMainBinding
 import retrofit2.HttpException
 import java.io.IOException
+import java.util.*
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var adapter: RVAdapter
 
    lateinit var list : ArrayList<Data>
+   lateinit var searchList : ArrayList<Data>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,9 +34,10 @@ class MainActivity : AppCompatActivity() {
 
 
         list = arrayListOf()
+        searchList = arrayListOf()
 
         //setRV()
-        adapter = RVAdapter(this, list)
+        adapter = RVAdapter(this, searchList)
         binding.rvMain.layoutManager = LinearLayoutManager(this)
         binding.rvMain.adapter = adapter
 
@@ -47,19 +49,13 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        //todo: find a way to do search properly without breaking the RV
+        
         binding.btndel.setOnClickListener {
-            val userinput = binding.etSearch.text.toString()
-            for (i in list){
-                if (userinput == i.name){
+            //val userinput = binding.etSearch.text.toString()
+
                     val intent = Intent(this@MainActivity, DelUpActivity::class.java)
-                    intent.putExtra("userinput", userinput.toString())
+                   // intent.putExtra("userinput", userinput.toString())
                     startActivity(intent)
-
-                }
-            }
-
-
         }
 
 
@@ -67,6 +63,46 @@ class MainActivity : AppCompatActivity() {
 
         getData()
 
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+
+        menuInflater.inflate(R.menu.main_menu, menu)
+        val item = menu?.findItem(R.id.sv_search)
+        val seachView = item?.actionView as SearchView
+
+
+        seachView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+
+
+                return false
+            }
+
+            @SuppressLint("NotifyDataSetChanged")
+            override fun onQueryTextChange(newText: String?): Boolean {
+                searchList.clear()
+                val searchText = newText!!.toLowerCase(Locale.getDefault())
+                if (searchText.isNotEmpty()){
+                    list.forEach {
+                        if (it.name.toLowerCase(Locale.getDefault()).contains(searchText)){
+                            searchList.add(it)
+                        }
+                    }
+                    adapter.notifyDataSetChanged()
+                    adapter.update(searchList)
+                }else{
+                    searchList.clear()
+                    searchList.addAll(list)
+                    adapter.notifyDataSetChanged()
+                    adapter.update(searchList)
+                }
+
+                return false
+            }
+        })
+
+        return super.onCreateOptionsMenu(menu)
     }
 
     private fun getData(){
@@ -89,6 +125,7 @@ class MainActivity : AppCompatActivity() {
                 for (i in response.body()!!){
                     list.add(Data(i.pk, i.name, i.taboo1, i.taboo2, i.taboo3))
                 }
+                searchList.addAll(list)
 
             }else{
                 Log.d("Main-Error", "Response was not successful")
@@ -98,32 +135,7 @@ class MainActivity : AppCompatActivity() {
 
 
 
-//    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-//        menuInflater.inflate(R.menu.main_menu, menu)
-//
-//        val item = menu?.findItem(R.id.searchView_MenuMain)
-//        val searchView: SearchView = item?.actionView as SearchView
-//
-//        searchView.imeOptions = EditorInfo.IME_ACTION_DONE
-//
-//        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-//            override fun onQueryTextSubmit(query: String?): Boolean {
-//                return false
-//            }
-//
-//            override fun onQueryTextChange(newText: String?): Boolean {
-//                adapter.filter.filter(newText)
-//                return false
-//            }
-//        })
-//
-//        return true
-//    }
-//
-//    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-//
-//        return true
-//    }
+
 
 
 
